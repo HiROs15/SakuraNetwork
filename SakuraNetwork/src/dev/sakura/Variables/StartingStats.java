@@ -9,8 +9,6 @@ public class StartingStats {
 	
 	public int start_diamonds = 1000;
 	public boolean displayWelcome = true;
-	public String title = "Welcome to the Sakura Network";
-	public String subtitle = "Enjoy 1000 starting diamonds for joining early!";
-	public ChatColor titleColor = ChatColor.LIGHT_PURPLE;
-	public ChatColor subtitleColor = ChatColor.GREEN;
+	public String title = ChatColor.GOLD+"Welcome to the "+ChatColor.LIGHT_PURPLE+""+ChatColor.BOLD+"Sakura Network";
+	public String subtitle = ChatColor.YELLOW+"Enjoy 1000 starting diamonds for joining in "+ChatColor.BLUE+"ALPHA";
 }

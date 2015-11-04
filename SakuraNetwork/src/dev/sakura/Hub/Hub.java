@@ -19,13 +19,11 @@ public class Hub {
 	public Hub(int id) {
 		Config c = Config.get().setFile(File.separator+"hubs"+File.separator+"hubs.yml");
 		
-		if(c.getConfig().getString("hubs."+id+".id") == null) {
-			return;
-		}
+		this.id = id;
 		
 		this.spawnLocation = ConfigLocation.get().ConfigToLocation("hubs."+id+".spawn", File.separator+"hubs"+File.separator+"hubs.yml");
 		
-		this.serverName = c.getConfig().getString("hubs."+id+"server_name");
+		this.serverName = c.getConfig().getString("hubs."+id+".server_name");
 	}
 	
 	public Location getSpawnLocation() {

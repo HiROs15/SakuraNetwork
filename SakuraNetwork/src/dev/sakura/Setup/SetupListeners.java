@@ -1,12 +1,13 @@
 package dev.sakura.Setup;
 
-import java.io.File;
+import java.sql.ResultSet;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerJoinEvent;
 
-import dev.sakura.Main;
+import dev.sakura.Managers;
+import dev.sakura.Database.DBUtils;
 import dev.sakura.Listeners.SakuraListener;
 
 public class SetupListeners extends SakuraListener {
@@ -20,10 +21,9 @@ public class SetupListeners extends SakuraListener {
 		
 		String uuid = player.getUniqueId().toString();
 		
-		//Switch to database
-		
-		File fp = new File(Main.plugin.getDataFolder()+""+File.separator+"player-data"+""+File.separator+""+uuid+".dat");
-		if(!fp.exists()) {
+		ResultSet aon = Managers.sakuraDB.query("SELECT * FROM members WHERE uuid='"+uuid+"'");
+		if(DBUtils.get().getRows(aon) == 0) {
+			event.setJoinMessage("");
 			PlayerSetup.get().setupPlayer(player);
 		}
 	}

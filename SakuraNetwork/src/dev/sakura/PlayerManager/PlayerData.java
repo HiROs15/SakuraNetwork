@@ -1,8 +1,9 @@
 package dev.sakura.PlayerManager;
 
-import java.io.File;
+import java.sql.ResultSet;
 
-import dev.sakura.Config.Config;
+import dev.sakura.Managers;
+import dev.sakura.Database.DBUtils;
 
 public class PlayerData {
 	public static PlayerData get() {
@@ -25,10 +26,16 @@ public class PlayerData {
 	}
 	
 	public PlayerData fetchStats() {
-		Config c = Config.get().setFile(File.separator+"player-data"+File.separator+""+this.getUUID()+".dat");
-		this.rank = c.getConfig().getString("rank");
-		this.coins = c.getConfig().getInt("coins");
-		this.diamonds = c.getConfig().getInt("diamonds");
+		ResultSet aon = Managers.sakuraDB.query("SELECT * FROM members WHERE uuid='"+this.uuid+"'");
+		if(DBUtils.get().getRows(aon) == 0) {
+			return null;
+		}
+		
+		try {
+			this.rank = aon.getString("rank");
+			this.coins = aon.getInt("coins");
+			this.diamonds = aon.getInt("diamonds");
+		} catch(Exception e) {}
 		
 		return this;
 	}

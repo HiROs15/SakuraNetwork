@@ -4,6 +4,8 @@ import java.io.File;
 import java.util.ArrayList;
 
 import org.bukkit.ChatColor;
+import org.bukkit.GameMode;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
 import dev.sakura.Main;
@@ -14,10 +16,16 @@ public class HubManager {
 	
 	private ArrayList<Hub> hubs = new ArrayList<Hub>();
 	
+	public ArrayList<Material> blockedBlockInteractions = new ArrayList<Material>();
+	
 	public HubManager() {
 		instance = this;
 		
 		this.setupHubs();
+		
+		blockedBlockInteractions.add(Material.TRAPPED_CHEST);
+		blockedBlockInteractions.add(Material.CHEST);
+		blockedBlockInteractions.add(Material.TRAP_DOOR);
 	}
 	
 	private void setupHubs() {
@@ -36,7 +44,7 @@ public class HubManager {
 	}
 	
 	public Hub getHub(int id) {
-		return hubs.get(id);
+		return hubs.get(id-1);
 	}
 	
 	public boolean isPlayerInHub(Player player) {
@@ -55,6 +63,18 @@ public class HubManager {
 			player.kickPlayer(ChatColor.RED+""+ChatColor.BOLD+"ERROR "+ChatColor.RESET+""+ChatColor.GRAY+"We were unable to send you to a hub server. Please try again.");
 			return;
 		}
+		
+		Hub hub = this.getHub(hubid);
+		hub.join(player);
+		
+		player.teleport(hub.getSpawnLocation());
+		
+		player.setGameMode(GameMode.ADVENTURE);
+		player.setHealth(20);
+		player.setFoodLevel(20);
+		player.getInventory().clear();
+		
+		this.setupHubInventory(player);
 	}
 	
 	public int findOpenHub() {
@@ -64,9 +84,7 @@ public class HubManager {
 		while(found == false) {
 			int i = (int) Math.ceil(Math.random()*hubs.size());
 			
-			Main.plugin.getLogger().info("Id: "+i);
-			
-			if(getHub(i-1).getOnlinePlayers() < getHub(i-1).getMaxPlayers()) {
+			if(getHub(i).getOnlinePlayers() < getHub(i).getMaxPlayers()) {
 				found = true;
 				return i;
 			}
@@ -79,5 +97,21 @@ public class HubManager {
 			rounds++;
 		}
 		return 0;
+	}
+	
+	private void setupHubInventory(Player player) {
+		player.getInventory().clear();
+		
+		player.getInventory().setItem(0, new HubItem(Material.COMPASS, ChatColor.LIGHT_PURPLE+""+ChatColor.BOLD+"Minigame Selector", 1).registerItem().getItem());
+	}
+	
+	public void leaveHub(Player player) {
+		if(this.isPlayerInHub(player)) {
+			for(Hub hub : hubs) {
+				if(hub.containsPlayer(player)) {
+					hub.leave(player);
+				}
+			}
+		}
 	}
 }

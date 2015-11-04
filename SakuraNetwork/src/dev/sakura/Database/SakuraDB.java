@@ -8,10 +8,10 @@ import dev.sakura.Main;
 
 public class SakuraDB {
 	//Setup vars
-	String host = "";
-	String username = "";
-	String password = "";
-	String database = "";
+	String host = "192.243.111.23";
+	String username = "HiROs15";
+	String password = "dfK2cm";
+	String database = "data";
 	
 	private MySQL db = new MySQL(Main.plugin, host, "3306", database, username, password);
 	Connection c = null;
@@ -19,7 +19,9 @@ public class SakuraDB {
 	public SakuraDB() {
 		try {
 			c = db.openConnection();
-		} catch(Exception e) {}
+		} catch(Exception e) {
+			System.out.println("ERROR: "+e.getMessage());
+		}
 	}
 	
 	public ResultSet query(String q) {
