@@ -1,6 +1,7 @@
 package dev.sakura.Hub;
 
 import java.io.File;
+import java.sql.ResultSet;
 import java.util.ArrayList;
 
 import org.bukkit.ChatColor;
@@ -9,6 +10,7 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
 import dev.sakura.Main;
+import dev.sakura.Managers;
 import dev.sakura.Config.Config;
 
 public class HubManager {
@@ -47,6 +49,15 @@ public class HubManager {
 		return hubs.get(id-1);
 	}
 	
+	public Hub getHub(Player player) {
+		for(Hub h : hubs) {
+			if(h.containsPlayer(player) == true) {
+				return h;
+			}
+		}
+		return null;
+	}
+	
 	public boolean isPlayerInHub(Player player) {
 		for(Hub h : hubs) {
 			if(h.containsPlayer(player)) {
@@ -75,6 +86,8 @@ public class HubManager {
 		player.getInventory().clear();
 		
 		this.setupHubInventory(player);
+		
+		hub.updateVisiblePlayers(player);
 	}
 	
 	public int findOpenHub() {
@@ -103,6 +116,7 @@ public class HubManager {
 		player.getInventory().clear();
 		
 		player.getInventory().setItem(0, new HubItem(Material.COMPASS, ChatColor.LIGHT_PURPLE+""+ChatColor.BOLD+"Minigame Selector", 1).registerItem().getItem());
+		updateTogglePlayersItem(player);
 	}
 	
 	public void leaveHub(Player player) {
@@ -112,6 +126,25 @@ public class HubManager {
 					hub.leave(player);
 				}
 			}
+		}
+	}
+	
+	public void updateTogglePlayersItem(Player player) {
+		ResultSet aon = Managers.sakuraDB.query("SELECT * FROM members WHERE uuid='"+player.getUniqueId().toString()+"'");
+		String state = "";
+		
+		try {
+			aon.next();
+			state = aon.getString("hubhideplayers");
+		} catch(Exception e) {
+			System.out.println(e.getMessage());
+		}
+		
+		if(state.equals("on")) {
+			player.getInventory().setItem(2, new HubItem(Material.REDSTONE_TORCH_ON, ChatColor.LIGHT_PURPLE+""+ChatColor.BOLD+"Toggle Players"+ChatColor.RESET+""+ChatColor.GREEN+" (On)", 1).registerItem().getItem());
+		}
+		if(state.equals("off")) {
+			player.getInventory().setItem(2, new HubItem(Material.REDSTONE_TORCH_ON, ChatColor.LIGHT_PURPLE+""+ChatColor.BOLD+"Toggle Players"+ChatColor.RESET+""+ChatColor.RED+" (Off)", 1).registerItem().getItem());
 		}
 	}
 }
