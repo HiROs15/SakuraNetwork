@@ -4,6 +4,7 @@ import java.util.ArrayList;
 
 import org.bukkit.entity.Player;
 
+import dev.sakura.Hub.Commands.Command_hub_test;
 import dev.sakura.Hub.Commands.Command_sethub;
 import dev.sakura.PlayerManager.PlayerData;
 import dev.sakura.PlayerManager.RankConvert;
@@ -21,10 +22,13 @@ public class SakuraCommandManager {
 	public SakuraCommandManager() {
 		//Add Commands Here!
 		commands.add(new Command_sethub());
+		commands.add(new Command_hub_test());
 		
 		//Add Enabled Commands HERE
 		enabled_commands.add("reload");
 		enabled_commands.add("stop");
+		enabled_commands.add("toggledownfall");
+		enabled_commands.add("tp");
 	}
 	
 	public boolean handleCommands(Player player, String message) {

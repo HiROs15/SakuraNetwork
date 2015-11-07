@@ -1,17 +1,16 @@
 package dev.sakura.Hub;
 
 import java.io.File;
-import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
-import dev.sakura.Main;
-import dev.sakura.Managers;
 import dev.sakura.Config.Config;
 import dev.sakura.Libs.ConfigLocation;
 
@@ -60,7 +59,7 @@ public class Hub {
 	
 	public boolean isPlayerHidden(Player player) {
 		for(Player p : hiddenPlayers) {
-			if(p.getName().equals(player.getName())) {
+			if(p.getUniqueId().toString().equals(player.getUniqueId().toString())) {
 				return true;
 			}
 		}
@@ -70,23 +69,15 @@ public class Hub {
 	public void join(Player player) {
 		players.add(player);
 		
-		ResultSet aon = Managers.sakuraDB.query("SELECT * FROM members WHERE uuid='"+player.getUniqueId().toString()+"'");
-		
-		try {
-			if(aon.getString("hub_hide_players").equals("on")) {
-				hiddenPlayers.add(player);
-			}
-		} catch(Exception e) {}
+		this.updateVisiblePlayers(player);
 	}
 	
 	public void leave(Player player) {
-		for(Player p : players) {
-			if(p.getName().equals(player.getName())) {
-				players.remove(p);
-				
-				if(this.isPlayerHidden(p)) {
-					hiddenPlayers.remove(p);
-				}
+		Iterator<Player> it = this.players.iterator();
+		while(it.hasNext()) {
+			Player p = it.next();
+			if(p.getUniqueId().toString().equals(player.getUniqueId().toString())) {
+				it.remove();
 			}
 		}
 	}
@@ -97,74 +88,78 @@ public class Hub {
 	
 	public boolean containsPlayer(Player player) {
 		for(Player p : players) {
-			if(p.getName().equals(p.getName())) {
+			if(p.getUniqueId().toString().equals(player.getUniqueId().toString())) {
 				return true;
 			}
 		}
 		return false;
 	}
 	
-	public void updateVisiblePlayers(Player player) {
-		for(Player p : Main.plugin.getServer().getOnlinePlayers()) {
-			if(this.containsPlayer(p) && this.isPlayerHidden(p)) {
-				player.showPlayer(p);
-				p.showPlayer(player);
-			} else {
+	private void updateVisiblePlayers(Player player) {
+		for(Player p : Bukkit.getOnlinePlayers()) {
+			p.hidePlayer(player);
+			player.hidePlayer(p);
+		}
+		
+		for(Player p : this.players) {
+			p.showPlayer(player);
+			player.showPlayer(p);
+		}
+		
+		if(this.isPlayerHidden(player)) {
+			for(Player p : Bukkit.getOnlinePlayers()) {
 				player.hidePlayer(p);
-				p.hidePlayer(player);
+			}
+		}
+		
+		for(Player p : Bukkit.getOnlinePlayers()) {
+			if(this.containsPlayer(p)) {
+				if(this.isPlayerHidden(p)) {
+					p.hidePlayer(player);
+				}
 			}
 		}
 	}
 	
-	public void toggleHiddenPlayers(Player player) {
+	public void togglePlayers(Player player) {
 		Long time = (System.currentTimeMillis()/1000L);
 		
-		//Check if player can toggle again!
 		for(Map.Entry<Player, Long> key : this.hidePlayersTimer.entrySet()) {
-			if(key.getKey().getName().equals(player.getName())) {
+			Player p = key.getKey();
+			if(p.getUniqueId().toString().equals(player.getUniqueId().toString())) {
 				if(key.getValue() > time) {
-					player.sendMessage(ChatColor.GOLD+""+ChatColor.BOLD+"HUB> "+ChatColor.RESET+""+ChatColor.GRAY+"You must wait 60 seconds before you can toggle players again.");
+					player.sendMessage(ChatColor.GOLD+""+ChatColor.BOLD+"HUB> "+ChatColor.RESET+""+ChatColor.GRAY+"You must wait 60 seconds before you can toggle players again!");
 					return;
-				} else {
-					this.hidePlayersTimer.remove(key.getKey());
+				}
+				else {
+					this.hidePlayersTimer.remove(key);
 				}
 			}
 		}
 		
-		ResultSet aon = Managers.sakuraDB.query("SELECT * FROM members WHERE uuid='"+player.getUniqueId().toString()+"'");
-		String state = "";
-		
-		try {
-			aon.next();
-			state = aon.getString("hubhideplayers");
-		} catch(Exception e) {}
-		
-		if(state.equals("off")) {
-			player.sendMessage(ChatColor.GOLD+""+ChatColor.BOLD+"HUB> "+ChatColor.RESET+""+ChatColor.GRAY+"You have turned on player visibility.");
+		if(this.isPlayerHidden(player) == true) {
+			Iterator<Player> it = this.hiddenPlayers.iterator();
+			while(it.hasNext()) {
+				Player p = it.next();
+				if(p.getUniqueId().toString().equals(player.getUniqueId().toString())) {
+					it.remove();
+				}
+			}
+			
+			player.sendMessage(ChatColor.GOLD+""+ChatColor.BOLD+"HUB> "+ChatColor.RESET+""+ChatColor.GRAY+"Players are now visible.");
+			this.updateVisiblePlayers(player);
+			HubManager.instance.updatePlayersItem(player);
+			
+			this.hidePlayersTimer.put(player, time+60);
+		}
+		else {
 			this.hiddenPlayers.add(player);
-			Managers.sakuraDB.update("UPDATE members SET hubhideplayers='on' WHERE uuid='"+player.getUniqueId().toString()+"'");
 			
+			player.sendMessage(ChatColor.GOLD+""+ChatColor.BOLD+"HUB> "+ChatColor.RESET+""+ChatColor.GRAY+"Players are now hidden.");
 			this.updateVisiblePlayers(player);
+			HubManager.instance.updatePlayersItem(player);
 			
-			HubManager.instance.updateTogglePlayersItem(player);
-			
-			this.hidePlayersTimer.put(player, (System.currentTimeMillis()/1000L)+60);
-		}
-		if(state.equals("on")) {
-			player.sendMessage(ChatColor.GOLD+""+ChatColor.BOLD+"HUB> "+ChatColor.RESET+""+ChatColor.GRAY+"You have turned off player visibility.");
-
-			for(Player p : hiddenPlayers) {
-				if(p.getName().equals(player.getName())) {
-					hiddenPlayers.remove(p);
-				}
-			}
-			
-			Managers.sakuraDB.update("UPDATE members SET hubhideplayers='off' WHERE uuid='"+player.getUniqueId().toString()+"'");
-			
-			this.updateVisiblePlayers(player);
-			
-			HubManager.instance.updateTogglePlayersItem(player);
-			this.hidePlayersTimer.put(player, (System.currentTimeMillis()/1000L));
+			this.hidePlayersTimer.put(player, time+60);
 		}
 	}
 }

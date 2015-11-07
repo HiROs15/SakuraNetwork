@@ -1,7 +1,6 @@
 package dev.sakura.Hub;
 
 import java.io.File;
-import java.sql.ResultSet;
 import java.util.ArrayList;
 
 import org.bukkit.ChatColor;
@@ -10,8 +9,9 @@ import org.bukkit.Material;
 import org.bukkit.entity.Player;
 
 import dev.sakura.Main;
-import dev.sakura.Managers;
 import dev.sakura.Config.Config;
+import dev.sakura.PlayerManager.PlayerData;
+import dev.sakura.PlayerManager.RankConvert;
 
 public class HubManager {
 	public static HubManager instance;
@@ -50,101 +50,53 @@ public class HubManager {
 	}
 	
 	public Hub getHub(Player player) {
-		for(Hub h : hubs) {
-			if(h.containsPlayer(player) == true) {
-				return h;
+		for(Hub hub : this.hubs) {
+			ArrayList<Player> players = hub.getPlayers();
+			for(Player p : players) {
+				if(p.getUniqueId().toString().equals(player.getUniqueId().toString())) {
+					return hub;
+				}
 			}
 		}
 		return null;
 	}
 	
-	public boolean isPlayerInHub(Player player) {
-		for(Hub h : hubs) {
-			if(h.containsPlayer(player)) {
-				return true;
-			}
-		}
-		return false;
-	}
-	
 	public void joinHub(Player player) {
-		int hubid = this.findOpenHub();
+		int hubid = (int) Math.ceil(Math.random()*this.hubs.size());
+		Hub hub = this.getHub(hubid);
 		
-		if(hubid == 0) {
-			player.kickPlayer(ChatColor.RED+""+ChatColor.BOLD+"ERROR "+ChatColor.RESET+""+ChatColor.GRAY+"We were unable to send you to a hub server. Please try again.");
+		if((hub.getPlayers().size()+1) > hub.getMaxPlayers()) {
+			this.joinHub(player);
 			return;
 		}
-		
-		Hub hub = this.getHub(hubid);
 		hub.join(player);
 		
-		player.teleport(hub.getSpawnLocation());
-		
-		player.setGameMode(GameMode.ADVENTURE);
-		player.setHealth(20);
-		player.setFoodLevel(20);
 		player.getInventory().clear();
+		player.teleport(hub.getSpawnLocation());
+		player.setGameMode(GameMode.ADVENTURE);
 		
 		this.setupHubInventory(player);
 		
-		hub.updateVisiblePlayers(player);
-	}
-	
-	public int findOpenHub() {
-		boolean found = false;
-		int rounds = 0;
+		HubScoreboard.get().showScoreboard(player);
 		
-		while(found == false) {
-			int i = (int) Math.ceil(Math.random()*hubs.size());
-			
-			if(getHub(i).getOnlinePlayers() < getHub(i).getMaxPlayers()) {
-				found = true;
-				return i;
-			}
-			
-			if(rounds == 10) {
-				found = false;
-				return 0;
-			}
-			
-			rounds++;
-		}
-		return 0;
+		player.setPlayerListName(RankConvert.get().RankToPrefix(PlayerData.get().setUUID(player.getUniqueId().toString()).fetchStats().getRank()) + ChatColor.WHITE+""+player.getName());
 	}
 	
 	private void setupHubInventory(Player player) {
-		player.getInventory().clear();
-		
-		player.getInventory().setItem(0, new HubItem(Material.COMPASS, ChatColor.LIGHT_PURPLE+""+ChatColor.BOLD+"Minigame Selector", 1).registerItem().getItem());
-		updateTogglePlayersItem(player);
+		player.getInventory().setItem(0, new HubItem(Material.COMPASS, ChatColor.LIGHT_PURPLE+"Minigame Selection", 1).registerItem().getItem());
+		player.getInventory().setItem(4, new HubItem(Material.REDSTONE_TORCH_ON, ChatColor.LIGHT_PURPLE+"Player Visibility "+ChatColor.GREEN+"(On)", 1).registerItem().getItem());
+		player.getInventory().setItem(8, new HubItem(Material.SLIME_BALL, ChatColor.LIGHT_PURPLE+"Hub Selector", 1).registerItem().getItem());
+		player.getInventory().setItem(6, new HubItem(Material.CHEST, ChatColor.LIGHT_PURPLE+"My Stuff", 1).registerItem().getItem());
 	}
 	
-	public void leaveHub(Player player) {
-		if(this.isPlayerInHub(player)) {
-			for(Hub hub : hubs) {
-				if(hub.containsPlayer(player)) {
-					hub.leave(player);
-				}
-			}
-		}
-	}
-	
-	public void updateTogglePlayersItem(Player player) {
-		ResultSet aon = Managers.sakuraDB.query("SELECT * FROM members WHERE uuid='"+player.getUniqueId().toString()+"'");
-		String state = "";
+	public void updatePlayersItem(Player player) {
+		Hub hub = this.getHub(player);
 		
-		try {
-			aon.next();
-			state = aon.getString("hubhideplayers");
-		} catch(Exception e) {
-			System.out.println(e.getMessage());
+		if(hub.isPlayerHidden(player) == false) {
+			player.getInventory().setItem(4, new HubItem(Material.REDSTONE_TORCH_ON, ChatColor.LIGHT_PURPLE+"Player Visiblity "+ChatColor.GREEN+"(On)",1).registerItem().getItem());
 		}
-		
-		if(state.equals("on")) {
-			player.getInventory().setItem(2, new HubItem(Material.REDSTONE_TORCH_ON, ChatColor.LIGHT_PURPLE+""+ChatColor.BOLD+"Toggle Players"+ChatColor.RESET+""+ChatColor.GREEN+" (On)", 1).registerItem().getItem());
-		}
-		if(state.equals("off")) {
-			player.getInventory().setItem(2, new HubItem(Material.REDSTONE_TORCH_ON, ChatColor.LIGHT_PURPLE+""+ChatColor.BOLD+"Toggle Players"+ChatColor.RESET+""+ChatColor.RED+" (Off)", 1).registerItem().getItem());
+		else {
+			player.getInventory().setItem(4, new HubItem(Material.REDSTONE_TORCH_ON, ChatColor.LIGHT_PURPLE+"Player Visiblity "+ChatColor.RED+"(Off)",1).registerItem().getItem());
 		}
 	}
 }

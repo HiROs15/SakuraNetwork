@@ -2,6 +2,7 @@ package dev.sakura;
 
 import dev.sakura.Database.SakuraDB;
 import dev.sakura.Hub.HubManager;
+import dev.sakura.Hub.HubScoreboard;
 
 public class Managers {
 	public static Managers get() {
@@ -10,7 +11,7 @@ public class Managers {
 	
 	public Managers() {
 		new HubManager();
-		
+		new HubScoreboard();
 		//Internal Managers
 		this.setupStaticManagers();
 	}
